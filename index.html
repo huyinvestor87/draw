@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Vẽ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#111111">
+<style>
+  :root{
+    --bar-h: 64px;
+    color-scheme: light dark;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    overflow:hidden; overscroll-behavior:none;
+    background:#1c1c1e;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
+    touch-action:none;
+    user-select:none;
+    -webkit-user-select:none;
+  }
+  #app{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column;
+  }
+  #canvasWrap{
+    position:relative;
+    flex:1;
+    min-height:0;
+    background:#ffffff;
+    touch-action:none;
+  }
+  canvas{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    display:block;
+    touch-action:none;
+  }
+  #bar{
+    height:var(--bar-h);
+    padding:0 10px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    height: calc(var(--bar-h) + env(safe-area-inset-bottom, 0px));
+    background:rgba(28,28,30,0.96);
+    backdrop-filter: blur(10px);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    overflow-x:auto;
+    flex-shrink:0;
+  }
+  #bar::-webkit-scrollbar{ display:none; }
+
+  .swatch{
+    width:34px; height:34px; border-radius:50%;
+    border:2px solid rgba(255,255,255,0.25);
+    flex:0 0 auto;
+    padding:0;
+    background:#000;
+    cursor:pointer;
+  }
+  .swatch.active{
+    border-color:#fff;
+    box-shadow:0 0 0 2px rgba(255,255,255,0.5);
+  }
+
+  #colorPicker{
+    -webkit-appearance:none; appearance:none;
+    width:34px; height:34px; border-radius:50%;
+    border:2px solid rgba(255,255,255,0.25);
+    padding:0; background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);
+    flex:0 0 auto;
+    overflow:hidden;
+  }
+  #colorPicker::-webkit-color-swatch-wrapper{ padding:0; }
+  #colorPicker::-webkit-color-swatch{ border:none; border-radius:50%; }
+
+  .sep{
+    width:1px; height:28px; background:rgba(255,255,255,0.15);
+    flex:0 0 auto;
+  }
+
+  #sizeWrap{
+    display:flex; align-items:center; gap:8px;
+    flex:0 0 auto;
+  }
+  #sizeDot{
+    width:20px; height:20px; border-radius:50%;
+    background:#fff;
+    flex:0 0 auto;
+    transition: width .1s, height .1s;
+  }
+  input[type=range]{
+    width:110px;
+    flex:0 0 auto;
+  }
+
+  .btn{
+    flex:0 0 auto;
+    height:38px;
+    padding:0 14px;
+    border-radius:19px;
+    border:none;
+    background:rgba(255,255,255,0.12);
+    color:#fff;
+    font-size:15px;
+    font-weight:500;
+    display:flex; align-items:center; justify-content:center;
+    gap:6px;
+    white-space:nowrap;
+  }
+  .btn:active{ background:rgba(255,255,255,0.25); }
+  .btn.icon{
+    width:38px; padding:0;
+  }
+  .btn svg{ width:18px; height:18px; }
+
+  #eraseBtn.active{
+    background:#0a84ff;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="canvasWrap">
+    <canvas id="c"></canvas>
+  </div>
+  <div id="bar">
+    <button class="swatch active" data-color="#000000" style="background:#000000"></button>
+    <button class="swatch" data-color="#ff3b30" style="background:#ff3b30"></button>
+    <button class="swatch" data-color="#ff9500" style="background:#ff9500"></button>
+    <button class="swatch" data-color="#ffcc00" style="background:#ffcc00"></button>
+    <button class="swatch" data-color="#34c759" style="background:#34c759"></button>
+    <button class="swatch" data-color="#0a84ff" style="background:#0a84ff"></button>
+    <button class="swatch" data-color="#5856d6" style="background:#5856d6"></button>
+    <input type="color" id="colorPicker" value="#000000" title="Màu tuỳ chỉnh">
+
+    <div class="sep"></div>
+
+    <div id="sizeWrap">
+      <div id="sizeDot"></div>
+      <input type="range" id="sizeRange" min="1" max="60" value="6">
+    </div>
+
+    <div class="sep"></div>
+
+    <button class="btn icon" id="eraseBtn" title="Tẩy">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H8L3.5 15.5a1.5 1.5 0 0 1 0-2.1l9-9a1.5 1.5 0 0 1 2.1 0l5.5 5.5a1.5 1.5 0 0 1 0 2.1L13.5 19"/></svg>
+    </button>
+    <button class="btn icon" id="undoBtn" title="Hoàn tác">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>
+    </button>
+    <button class="btn" id="clearBtn">Xoá hết</button>
+    <button class="btn" id="saveBtn">Lưu ảnh</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d', { willReadFrequently:false });
+  const wrap = document.getElementById('canvasWrap');
+  const sizeRange = document.getElementById('sizeRange');
+  const sizeDot = document.getElementById('sizeDot');
+  const colorPicker = document.getElementById('colorPicker');
+  const swatches = Array.from(document.querySelectorAll('.swatch'));
+  const eraseBtn = document.getElementById('eraseBtn');
+  const undoBtn = document.getElementById('undoBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const saveBtn = document.getElementById('saveBtn');
+
+  let color = '#000000';
+  let size = parseInt(sizeRange.value, 10);
+  let erasing = false;
+  let dpr = Math.max(1, window.devicePixelRatio || 1);
+
+  // Undo history as list of ImageData snapshots (bounded)
+  const history = [];
+  const MAX_HISTORY = 20;
+
+  function resizeCanvas(){
+    // Preserve current drawing across resize by redrawing the bitmap.
+    const prev = document.createElement('canvas');
+    prev.width = canvas.width;
+    prev.height = canvas.height;
+    const hadContent = canvas.width > 0 && canvas.height > 0;
+    if (hadContent) prev.getContext('2d').drawImage(canvas, 0, 0);
+
+    dpr = Math.max(1, window.devicePixelRatio || 1);
+    const w = wrap.clientWidth;
+    const h = wrap.clientHeight;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    if (hadContent) {
+      ctx.drawImage(prev, 0, 0, prev.width, prev.height, 0, 0, w, h);
+    }
+  }
+
+  function saveHistory(){
+    try{
+      const snap = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      history.push(snap);
+      if (history.length > MAX_HISTORY) history.shift();
+    }catch(e){}
+  }
+
+  function undo(){
+    if (!history.length) return;
+    const snap = history.pop();
+    ctx.putImageData(snap, 0, 0);
+  }
+
+  function updateSizeDot(){
+    const d = Math.max(4, Math.min(34, size));
+    sizeDot.style.width = d + 'px';
+    sizeDot.style.height = d + 'px';
+    sizeDot.style.background = erasing ? '#ffffff' : color;
+    sizeDot.style.border = erasing ? '1px solid rgba(255,255,255,0.4)' : 'none';
+  }
+
+  function setColor(c){
+    color = c;
+    erasing = false;
+    eraseBtn.classList.remove('active');
+    colorPicker.value = c;
+    swatches.forEach(s => s.classList.toggle('active', s.dataset.color.toLowerCase() === c.toLowerCase()));
+    updateSizeDot();
+  }
+
+  swatches.forEach(s => {
+    s.addEventListener('click', () => setColor(s.dataset.color));
+  });
+  colorPicker.addEventListener('input', () => {
+    color = colorPicker.value;
+    erasing = false;
+    eraseBtn.classList.remove('active');
+    swatches.forEach(s => s.classList.remove('active'));
+    updateSizeDot();
+  });
+
+  sizeRange.addEventListener('input', () => {
+    size = parseInt(sizeRange.value, 10);
+    updateSizeDot();
+  });
+
+  eraseBtn.addEventListener('click', () => {
+    erasing = !erasing;
+    eraseBtn.classList.toggle('active', erasing);
+    updateSizeDot();
+  });
+
+  undoBtn.addEventListener('click', undo);
+
+  clearBtn.addEventListener('click', () => {
+    saveHistory();
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+  });
+
+  saveBtn.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.download = 've-' + Date.now() + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+
+  // --- Drawing ---
+  let drawing = false;
+  let lastX = 0, lastY = 0;
+  let strokeStarted = false;
+
+  function getPos(e){
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      pressure: (e.pointerType === 'pen' && e.pressure > 0) ? e.pressure : 1
+    };
+  }
+
+  function pointerDown(e){
+    // Only draw with touch, pen, or mouse — ignore multi-touch gestures.
+    if (e.pointerType === 'touch' && e.isPrimary === false) return;
+    canvas.setPointerCapture(e.pointerId);
+    saveHistory();
+    drawing = true;
+    strokeStarted = false;
+    const p = getPos(e);
+    lastX = p.x; lastY = p.y;
+    drawDot(p);
+  }
+
+  function drawDot(p){
+    ctx.beginPath();
+    ctx.fillStyle = erasing ? '#ffffff' : color;
+    const r = (erasing ? size * 1.5 : size) / 2 * p.pressure * 0.9 + ((erasing ? size*1.5 : size)/2)*0.1;
+    ctx.arc(p.x, p.y, Math.max(0.5, r), 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function pointerMove(e){
+    if (!drawing) return;
+    if (e.pointerType === 'touch' && e.isPrimary === false) return;
+    const p = getPos(e);
+    ctx.strokeStyle = erasing ? '#ffffff' : color;
+    ctx.lineWidth = (erasing ? size * 1.5 : size) * (0.4 + p.pressure * 0.6);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    lastX = p.x; lastY = p.y;
+    strokeStarted = true;
+  }
+
+  function pointerUp(e){
+    drawing = false;
+    try{ canvas.releasePointerCapture(e.pointerId); }catch(err){}
+  }
+
+  canvas.addEventListener('pointerdown', pointerDown);
+  canvas.addEventListener('pointermove', pointerMove);
+  canvas.addEventListener('pointerup', pointerUp);
+  canvas.addEventListener('pointercancel', pointerUp);
+  canvas.addEventListener('pointerleave', (e) => { if (drawing) pointerUp(e); });
+
+  // Prevent iOS gestures (pinch-zoom, double-tap-zoom, scroll) inside canvas.
+  ['touchstart','touchmove','touchend'].forEach(evt => {
+    canvas.addEventListener(evt, (e) => e.preventDefault(), { passive:false });
+  });
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
+  document.addEventListener('dblclick', (e) => e.preventDefault());
+
+  window.addEventListener('resize', resizeCanvas);
+  window.addEventListener('orientationchange', resizeCanvas);
+
+  resizeCanvas();
+  updateSizeDot();
+})();
+</script>
+</body>
+</html>
